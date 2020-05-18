@@ -1,0 +1,206 @@
+---
+title: "Data Exploration & Analysis"
+author: "Anjana Ananthraman"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(maps)
+library(scatterpie)
+library(ggplot2)
+library(plotly)
+library(rnoaa)
+library(usmap)
+library(readxl)
+library(readr)
+library(dygraphs)
+library(xts)
+```
+
+
+
+Nationwide Observations
+=====================================
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+### 
+
+Here we are looking at three visualizations on a Nationwide basis.
+
+1. Nationwide Average Maximum Temperature Over Last Five Years on the basis of position by latitude and longitude. As the redness increses on the visualization, it indicates higher temperature in those areas in degree Fahrenheit.
+
+2. Nationwide Average Minimum Temperature Over Last Five Years on the basis of position by latitude and longitude. As the color turns dark blue on the visualization, it indicates lower temperature in those areas in degree Fahrenheit.
+
+3. This represents the direct measurements of carbon dioxide by giving us their values in Parts Per Million over the time period of last 60 years. 
+
+Column {.tabset data-height=550}
+-----------------------------------------------------------------------
+
+### Maximum Temperature
+
+```{r}
+max_temp = read.csv("/Users/anjanaananthraman/Downloads/110-tmax-202003-60.csv")
+states = map_data("state")
+max_temp$region = tolower(max_temp$Location)
+max_temp = merge(states, max_temp, by="region", all=T)
+
+#Plot
+mt = ggplot(max_temp, 
+            aes(x = long, y = lat, group = group, fill = Value))+
+            geom_polygon(color = "white") + 
+           labs(x = "Longitude", y = "Latitude", title = "Nationwide Average Maximum Temperature Over Last Five Years")
+mt = mt + scale_fill_gradient(name = "Degrees F", low = "#feceda", high = "#c81f49", guide = "colorbar", na.value="black") 
+mt + coord_map()
+
+```
+
+
+
+### Mininum Temperature
+
+```{r}
+min_temp <-read.csv("/Users/anjanaananthraman/Downloads/110-tmin-202003-60.csv")
+states = map_data("state")
+min_temp$region = tolower(min_temp$Location)
+min_temp = merge(states, min_temp, by="region", all=T)
+
+#Plot
+mint = ggplot(min_temp, aes(x = long, y = lat, group = group, fill = Value))+
+  geom_polygon(color = "white")+
+   labs(x = "Longitude", y = "Latitude", title = "Nationwide Average Minimum Temperature Over Last Five Years")
+mint = mint + scale_fill_gradient(name = "Degrees F", na.value="black") 
+mint + coord_map()
+
+```
+           
+### Carbon Dioxide Measurements
+
+```{r}
+Carbon_Dioxide = read.table("ftp://aftp.cmdl.noaa.gov/products/trends/co2/co2_mm_mlo.txt", header = FALSE, col.names = c("Year","Month","Decimal_Date","Average","Interpolated","Trend","Number_Days"), skip = 70)
+
+# reformat date
+Carbon_Dioxide$Average = replace(Carbon_Dioxide$Average, Carbon_Dioxide$Average == -99.99, NA)
+Carbon_Dioxide$Number_Days = replace(Carbon_Dioxide$Days, Carbon_Dioxide $Number_Days == -1, NA)
+scaled_Carbon_Dioxide  = Carbon_Dioxide 
+
+# plot
+C02 = ts(Carbon_Dioxide$Average, frequency = 12, start = c(1960,1))
+dygraph(C02, main = "Carbon Dioxide Direct Measurements", 
+        ylab="Carbon Dioxide (Parts Per Million)") %>%
+  dyRangeSelector() %>%
+  dyLegend(width = 100, show = "onmouseover") %>%
+  dyOptions(drawGrid = FALSE) %>%
+  dyOptions(fillGraph = TRUE, fillAlpha = 0.4)
+
+```
+
+
+
+
+Observations in Utah
+=====================================
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+### 
+
+Here we are looking at two visualizations specifically for the state of Utah.
+
+1. Represents the precipitation level in Salt Lake City over the period of last one yaer.
+
+2. Second representation represents drought levels in Utah for the same time period as above. The standardized system for drought monitoring are labeled as Abnormally Dry or D0, (a precursor to drought, not actually drought), Moderate (D1), Severe (D2) and Extreme (D3).
+
+Column {.tabset data-height=550}
+-----------------------------------------------------------------------
+
+### Precepitation (Salt Lake, Utah)
+
+```{r}
+
+options(noaakey = "oZzkzWEKXiyaXasSxHvgfRVlZadVnscH")
+
+out = ncdc(datasetid='GHCND', stationid='GHCND:US1UTSL0041', datatypeid='PRCP', startdate = '2017-08-01', enddate = '2018-07-31', limit = 500)
+#ncdc_plot(out, breaks="1 month", dateformat="%d/%m")
+
+temp = as.Date(out$data$date)
+out$data$date = temp
+
+o = out$data[,c(1,4)]
+
+dates <- seq(as.Date("2017-08-01"),length = nrow(o), by = "days")
+smith <- xts(x = o, order.by = dates)
+
+
+#Plot
+dygraph(data = smith,
+        main = "Precipitation Measure in Salt Lake City, UT",
+        ylab= "Precipitation", 
+        group = "PRCP") %>%
+dyRangeSelector(dateWindow = c("2017-08-01", "2018-07-31")) %>%
+dyLegend(width = 500, show = "onmouseover") %>%
+dyOptions(drawGrid = FALSE) %>%
+dyOptions(colors = RColorBrewer::brewer.pal(3, "Set2"))
+```
+
+
+### Drought Measures in Utah
+```{r}
+data1= read.csv("/Users/anjanaananthraman/Downloads/Drought.csv")
+
+date1 <- seq(as.Date("2017-08-01"),length = nrow(data1), by = "days")
+smith1 <- xts(x = data1, order.by = date1)
+
+
+vol2 = cbind(smith1$D0,smith1$D1,smith1$D2,smith1$D3)
+colnames(vol2) = c("D0","D1","D2","D3")
+
+#Plot
+
+dygraph(vol2,
+        ylab = "Values",
+        main = "Drought Measures in Utah") %>%
+dyOptions(strokeWidth = 2,colors = RColorBrewer::brewer.pal(8,"Set1"),
+          connectSeparatedPoints = TRUE)%>%
+dyHighlight(highlightCircleSize = 3, 
+              highlightSeriesBackgroundAlpha = 0.2,
+              hideOnMouseOut = TRUE)%>%
+dyOptions(fillGraph = TRUE) %>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2017-08-01", "2018-07-31"))
+
+```
+
+
+Ideas/Observations
+=====================================
+
+### Observations
+
+Global warming is a serious concern even today. The rate at which the climatic conditions have been changing, it will be a serious concern in the near future as well. Temperature has been increasing constantly over the years. The Three interested measures related to global warming in this research is related to Drought, Precipitation and level of CO2. My focus is on the state of Utah, as I am a resident of this state and I would like to see what impacts the changes in temperature, cardon dioxide, precitipitation & Drought have over Utah.
+
+The Nationwide Minimum and Maximum temperature over the last five years are a representation of how warm or cold it can get in certain parts of the US. The temperature continues to drop in certain areas where as some areas are proven to be hotter than others. The representation shows that some of the southern states of United States are hotter than the others. As well as the northern part apperas to be much cooler.
+
+Carbon dioxide is a greenhouse gas, a gas that absorbs and radiates heat. Warmed by sunlight, Earth’s land and ocean surfaces continuously radiate thermal infrared energy (heat). Without this natural greenhouse effect, Earth’s average annual temperature would be below freezing instead of close to 60°F. Carbon dioxide absorbs less heat per molecule, but it’s more abundant and it stays in the atmosphere much longer. Increases in atmospheric carbon dioxide are responsible for about two-thirds of the total energy imbalance that is causing Earth's temperature to rise. 
+Natural increases in carbon dioxide concentrations have periodically warmed Earth’s temperature during ice age cycles over the past million years or more. A representation of meaures from 1990 to 2020 are taken. Global atmospheric carbon dioxide surpassed 400 ppm for the first time on record. If global energy demand continues to grow and to be met mostly with fossil fuels, atmospheric carbon dioxide is projected to exceed 900 ppm by the end of this century.
+
+Precipitation is any liquid or frozen water that forms in the atmosphere and falls back to the Earth. It comes in many forms, like rain, sleet, and snow. Along with evaporation and condensation, precipitation is one of the three major parts of the global water cycle. Precipitation for Salt Lake is recorded in this study. Precipitation was more in 2017 due to increase in acculmation of water content. With this we can say that if snowfall or rainfall increases, it will lead to more precitipation in future years. 
+Global warming is shifting the amount of rain from one location of the US to other location, causing drought situation in one place, and cause severe flooding issues at other.
+
+For drought, we are looking at one year's data to make observations or questions. The standardized system for drought monitoring are labeled Abnormally Dry or D0, (a precursor to drought, not actually drought), Moderate (D1), Severe (D2) and Extreme (D3). Drought categories show assessments of conditions related to dryness and drought including observations of how much water is available in streams, lakes and soils as compared to usual for the same time of year. Statistics show what proportion are in each category of dryness or drought, which would untimately afftect humans. 
+Utah would fall under the category where we have D0 - Abnormally Dry, for the majortity of the observations which indicates short-term dryness, slowing planting, growth of crops, some lingering water deficits, pastures or crops not fully recovered. We can also see D1 - Moderate Drought, is the second highest which would lead to some damage to crops, pastures, some water shortages developing and in such areas, voluntary water-use restrictions requested.
+Will Utah on a majority basis be in D0-D1 range or will that worsen as time passes? We have seen period of D3 in a small scale before. Hoping those do not get intense. 
+
+These are the various representations of how these different paramenters are having an effect on Global Warming. The questions we can get here are how worst will this be? Will this continue to worsen and harm all human life on earth?
+```{r}
+
+```
+

@@ -1,0 +1,174 @@
+---
+title: "Dashboards and Financial Data"
+author: "Anjana Ananthraman"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+---
+
+Stock Prices
+=====================================
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+### 
+
+In this dashboard I have analyzed four companies stocks such as Workday (WDAY),SAP, Oracle (ORCL)and Tesla (TSLA).I have performed this analysis for a period of 180 days where I have considered various parameters like open, close, high, low prices.I have also studied the adjusted closing price and the trading volume for each of the stocks.
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+chooseCRANmirror(graphics=FALSE, ind=1)
+install.packages("pdfetch")
+install.packages("dygraphs")
+library(pdfetch)
+library(dygraphs)
+library(xts)
+identifiers = c("WDAY","SAP","ORCL","TSLA")
+```
+
+
+
+Column {.tabset data-height=550}
+-----------------------------------------------------------------------
+
+### Workday
+
+```{r}
+WDAY = pdfetch_YAHOO("WDAY", fields = c("open", "high", "low", "close"),
+                     from = as.Date("2019-09-01"),interval = "1d")
+colnames(WDAY)=c("Open","High","Low","Close")
+
+w =tail(WDAY, n = 180)
+
+
+
+dygraph(w,
+        ylab = "Stock Price ($)",
+        group = "stockprices") %>%
+dyCandlestick() %>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2019-10-03", "2020-03-09"))
+```
+
+
+-----------------------------------------------------------------------
+
+### SAP
+
+```{r}
+SAP = pdfetch_YAHOO("SAP", fields = c("open", "high", "low", "close"),
+                     from = as.Date("2019-09-01"),interval = "1d")
+colnames(SAP)=c("Open","High","Low","Close")
+
+s =tail(SAP, n = 180)
+
+
+dygraph(s,
+        ylab = "Stock Price ($)",
+        group = "stockprices") %>%
+dyCandlestick() %>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2019-10-03", "2020-03-09"))
+```
+
+### Oracle
+
+```{r}
+ORCL = pdfetch_YAHOO("ORCL", fields = c("open", "high", "low", "close"),
+                     from = as.Date("2019-09-01"),interval = "1d")
+colnames(ORCL)=c("Open","High","Low","Close")
+
+o =tail(ORCL, n = 180)
+
+
+dygraph(o,
+        ylab = "Stock Price ($)",
+        group = "stockprices") %>%
+dyCandlestick() %>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2019-10-03", "2020-03-09"))
+
+```
+
+### Tesla
+
+```{r}
+TSLA = pdfetch_YAHOO("TSLA", fields = c("open", "high", "low", "close"),
+                     from = as.Date("2019-09-01"),interval = "1d")
+colnames(TSLA)=c("Open","High","Low","Close")
+
+t =tail(TSLA, n = 180)
+
+
+dygraph(t,
+        ylab = "Stock Price ($)",
+        group = "stockprices") %>%
+dyCandlestick() %>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2019-10-03", "2020-03-09"))
+
+```
+
+Analysis of stocks
+=====================================
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+### Analysis
+
+After studying the four stocks, I believe it would be a good investment to buy Tesla stocks. The reason being that Tesla has been at a constant uptrend. Recently we are seeing some price dip but it is holding that support price and is showing signs of an uptrend. So it would be a good short term investment to buy at a low price and sell at a high price.  
+
+Column {.tabset data-height=550}
+-----------------------------------------------------------------------
+
+### Closing Price
+```{r}
+fdata = pdfetch_YAHOO(identifiers, fields = c("open","adjclose"),
+                      from = as.Date("2019-09-03"), to = as.Date("2020-03-09"),interval = "1d")
+
+AdjClose = cbind(fdata$WDAY.adjclose,fdata$SAP.adjclose, fdata$ORCL.adjclose, fdata$TSLA.adjclose)
+colnames(AdjClose) <-c("WDAY","SAP","ORCL","TSLA")
+
+ac = tail(AdjClose, n = 180)
+
+
+dygraph(ac,
+        main = "Adjusted Closing Price (for past 180 trading days)", 
+        ylab = "Closing Price ($)",
+        group = "trading") %>%
+dyOptions(strokeWidth = 3,colors = RColorBrewer::brewer.pal(8, "Set2"),connectSeparatedPoints = TRUE)%>%
+dyHighlight(highlightCircleSize = 4, 
+              highlightSeriesBackgroundAlpha = 0.2,
+              hideOnMouseOut = TRUE)%>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2019-09-03", "2020-03-09"))
+```
+
+### Volume
+```{r}
+vol = pdfetch_YAHOO(identifiers, fields =c("volume","adjclose"),
+                    from = as.Date("2019-09-03"),interval = "1d")
+
+vol1 = cbind(vol$WDAY.volume,vol$SAP.volume,vol$ORCL.volume,vol$TSLA.volume)
+colnames(vol1) = c("WDAY","SAP","ORCL","TSLA")
+
+v = tail(vol1, n = 180)
+
+
+
+dygraph(v,
+        main = "Trading Volume (for past 180 trading days)", 
+        ylab = "Volume",
+        group = "trading") %>%
+dyOptions(strokeWidth = 2,colors = RColorBrewer::brewer.pal(8,"Set2"),connectSeparatedPoints = TRUE)%>%
+dyHighlight(highlightCircleSize = 3, 
+              highlightSeriesBackgroundAlpha = 0.2,
+              hideOnMouseOut = TRUE)%>%
+dyLegend(width = 400) %>%
+dyRangeSelector(dateWindow = c("2019-09-03", "2020-03-09"))
+
+```

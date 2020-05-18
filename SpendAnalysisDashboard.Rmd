@@ -1,0 +1,331 @@
+---
+title: "ANLY 512 Final Project"
+author : "Anjana Ananthraman"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: fill
+    source_code: embed
+    orientation: rows
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(maps)
+library(scatterpie)
+library(ggplot2)
+library(plotly)
+library(rnoaa)
+library(usmap)
+library(readxl)
+library(readr)
+library(dygraphs)
+library(xts)
+library(plotly)
+
+data = read.csv("/Users/anjanaananthraman/Downloads/spend.csv")
+data
+```
+Expenditure
+=====================================
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+### Spending habits
+
+In this dashboard, I am analyzing my own sepnding habits to see how my spending trends are and where could I reduce my expenditure. 
+
+The is my own personal data. I collected the data over a period of past three months, namely, January, February and March 2020.The data includes information like spend category, For example Rent, Entertainment etc. and my Card Type like Credit or Debit.
+
+The guage represents my spend/expense percentage as compared to my income in each of the three months. This helps me give an overall idea of how much of my income am I spending.
+
+The pie charts repesents my spend/expense percentage as compared to my income in each of the three months by the spend category. This helps me visualize as to which month I am spending more or less in which category.
+
+Column {data-width=450}
+-----------------------------------------------------------------------
+
+### January
+
+```{r}
+### January
+temp = data
+temp$Date <- factor(temp$Date, levels = c("January", "February" , "March"),
+                 labels = c(1, 2, 3))
+jan = subset(temp, temp$Date ==1)
+income1  = sum(subset(jan,jan$Category=="Income")$Amount)
+spend = sum(subset(jan,jan$Category!="Income")$Amount)
+per = round((spend/income1) * 100,1)
+gauge(per, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(0, 50.99), warning = c(51, 79.99), danger = c(80, 100)
+))
+```
+
+### February
+
+```{r}
+
+### February
+
+feb = subset(temp, temp$Date ==2)
+income2  = sum(subset(feb,feb$Category=="Income")$Amount)
+spend2 = sum(subset(feb,feb$Category!="Income")$Amount)
+per2 = round((spend2/income2) * 100,1)
+gauge(per2, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(0, 50.99), warning = c(51, 79.99), danger = c(80, 100)))
+```
+
+### March
+
+```{r}
+### March
+
+ma = subset(temp, temp$Date ==3)
+income3  = sum(subset(ma,ma$Category=="Income")$Amount)
+spend3 = sum(subset(ma,ma$Category!="Income")$Amount)
+per3 = round((spend3/income3) * 100,1)
+gauge(per3, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(0, 50.99), warning = c(51, 79.99), danger = c(80, 100)))
+
+```
+
+
+coloum {data-width=100}
+-----------------------------------------------------------------------
+### Representation of Spend by Category
+
+```{r}
+#plot
+fig <- plot_ly()
+fig <- fig %>% add_pie(data = subset(jan,jan$Category!="Income")[,-1], labels = ~Category, values = ~Amount,
+          name = "Jan", domain = list(x = c(0, 0.4), y = c(0.4, 1)))
+fig <- fig %>% add_pie(data = subset(feb,feb$Category!="Income")[,-1], labels = ~Category, values = ~Amount,
+          name = "Feb", domain = list(x = c(0.6, 1), y = c(0.4, 1)))
+fig <- fig %>% add_pie(data = subset(ma,ma$Category!="Income")[,-1], labels = ~Category, values = ~Amount,
+          name = "March", domain = list(x = c(0.25, 0.75), y = c(0, 0.6)))
+fig <- fig %>% layout(title = "Expenses by Each Month", showlegend = T,
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+```
+
+
+Credit Card Utilization
+=====================================
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+### 
+
+In this visualization my aim is to see how much of my credit card am I utilizing. My credit limit is $2000. This shows a percentage of my credit card utilization as compared to my total credit limit by each month .
+
+Column {data-height=550}
+-----------------------------------------------------------------------
+
+### Percentage of Credit Card Utilization for Each Month
+
+```{r}
+
+new = subset(data,data$Category!="Income")
+new2 = subset(new,new$Account!="Debit")
+totalCredit = 2000
+j = sum(subset(jan,jan$Account=="Credit")$Amount)
+f = sum(subset(feb,feb$Account=="Credit")$Amount)
+m = sum(subset(ma,ma$Account=="Credit")$Amount)
+
+per = c((j/totalCredit)*100,(f/totalCredit)*100,(m/totalCredit)*100)
+
+
+#plot
+fig <- plot_ly(
+  x = c("January","February","March"),
+  y = per,
+  name = "Credit Card Utilization",
+  text = per, textposition = 'auto',
+  type = "bar")
+fig <- fig %>% layout(title = "Percent Credit Card Utilization",xaxis = list(title = "Months",
+                      zeroline = FALSE),
+         yaxis = list(title = "Percentage",
+                      zeroline = FALSE))
+ 
+
+
+fig
+```
+
+
+
+Credit vs Debit
+=====================================
+
+Column {data-width=450}
+-----------------------------------------------------------------------
+###  Debit
+```{r}
+jd <- c(sum(subset(jan,jan$Category=="Restaurant & Dining" & jan$Account=="Debit")$Amount), sum(subset(jan,jan$Category=="Insurance" & jan$Account=="Debit")$Amount), 
+sum(subset(jan,jan$Category=="Rent"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Groceries"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Shopping"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Entertainment"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Gas"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Home & Utilities"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Travel"& jan$Account=="Debit")$Amount),
+sum(subset(jan,jan$Category=="Misc"& jan$Account=="Debit")$Amount))
+
+jc <- c(sum(subset(jan,jan$Category=="Restaurant & Dining" & jan$Account=="Credit")$Amount), sum(subset(jan,jan$Category=="Insurance" & jan$Account=="Credit")$Amount), 
+sum(subset(jan,jan$Category=="Rent"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Groceries"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Shopping"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Entertainment"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Gas"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Home & Utilities"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Travel"& jan$Account=="Credit")$Amount),
+sum(subset(jan,jan$Category=="Misc"& jan$Account=="Credit")$Amount))
+
+
+
+fd <- c(sum(subset(feb,feb$Category=="Restaurant & Dining"& feb$Account=="Debit")$Amount), sum(subset(feb,feb$Category=="Insurance"& feb$Account=="Debit")$Amount), 
+sum(subset(feb,feb$Category=="Rent"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Groceries"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Shopping"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Entertainment"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Gas"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Home & Utilities"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Travel"& feb$Account=="Debit")$Amount),
+sum(subset(feb,feb$Category=="Misc"& feb$Account=="Debit")$Amount))
+
+
+fc <- c(sum(subset(feb,feb$Category=="Restaurant & Dining"& feb$Account=="Credit")$Amount), sum(subset(feb,feb$Category=="Insurance"& feb$Account=="Credit")$Amount), 
+sum(subset(feb,feb$Category=="Rent"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Groceries"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Shopping"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Entertainment"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Gas"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Home & Utilities"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Travel"& feb$Account=="Credit")$Amount),
+sum(subset(feb,feb$Category=="Misc"& feb$Account=="Credit")$Amount))
+
+md <- c(sum(subset(ma,ma$Category=="Restaurant & Dining"& ma$Account=="Debit")$Amount), sum(subset(ma,ma$Category=="Insurance"& ma$Account=="Debit")$Amount), 
+sum(subset(ma,ma$Category=="Rent"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Groceries"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Shopping"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Entertainment"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Gas"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Home & Utilities"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Travel"& ma$Account=="Debit")$Amount),
+sum(subset(ma,ma$Category=="Misc"& ma$Account=="Debit")$Amount))
+
+mc <- c(sum(subset(ma,ma$Category=="Restaurant & Dining"& ma$Account=="Credit")$Amount), sum(subset(ma,ma$Category=="Insurance"& ma$Account=="Credit")$Amount), 
+sum(subset(ma,ma$Category=="Rent"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Groceries"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Shopping"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Entertainment"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Gas"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Home & Utilities"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Travel"& ma$Account=="Credit")$Amount),
+sum(subset(ma,ma$Category=="Misc"& ma$Account=="Credit")$Amount))
+
+
+x <- c('Restaurant & Dining', 'Insurance', 'Rent', 'Groceries','Shopping', 'Entertainment','Gas','Home & Utilities','Travel','Misc')
+
+text = c("January", "February", "March")
+
+##plot for Debit
+
+data <- data.frame(x, jd, fd,md)
+
+fig <- data %>% plot_ly()
+fig <- fig %>% add_trace(x = ~x, y = ~jd, type = 'bar',name = 'January',
+              textposition = 'auto',
+             marker = list(color = 'rgb(55, 128, 191, 0.7)',
+                           line = list(color = 'rgb(8,48,107)', width = 1.5)))
+fig <- fig %>% add_trace(x = ~x, y = ~fd, type = 'bar',name = 'February',
+             textposition = 'auto',
+            marker = list(color = 'rgb(58,200,225)',
+                          line = list(color = 'rgb(8,48,107)', width = 1.5)))
+
+fig <- fig %>% add_trace(x = ~x, y = ~md, type = 'bar',name = 'March',
+            textposition = 'auto',
+            marker = list(color = 'rgb(219, 64, 82, 1.0)',
+                          line = list(color = 'rgb(8,48,107)', width = 1.5)))
+
+fig <- fig %>% layout(title = "Spending by Debit",
+         barmode = 'group',
+         xaxis = list(title = "Category"),
+         yaxis = list(title = "Amount"))
+
+fig
+```
+
+### Credit
+
+
+```{r}
+data <- data.frame(x, jc, fc,mc)
+
+figc <- data %>% plot_ly()
+figc <- figc %>% add_trace(x = ~x, y = ~jc, type = 'bar',name = 'January',
+             textposition = 'auto',
+             marker = list(color = 'rgb(55, 128, 191, 0.7)',
+                           line = list(color = 'rgb(8,48,107)', width = 1.5)))
+figc <- figc %>% add_trace(x = ~x, y = ~fc, type = 'bar',name = 'February',
+            textposition = 'auto',
+            marker = list(color = 'rgb(58,200,225)',
+                          line = list(color = 'rgb(8,48,107)', width = 1.5)))
+
+figc <- figc %>% add_trace(x = ~x, y = ~mc, type = 'bar',name = 'March',
+            textposition = 'auto',
+            marker = list(color = 'rgb(219, 64, 82, 1.0)',
+                          line = list(color = 'rgb(8,48,107)', width = 1.5)))
+
+figc <- figc %>% layout(title = "Spending by Credit",
+         barmode = 'group',
+         xaxis = list(title = "Category"),
+         yaxis = list(title = "Amount"))
+
+figc
+```
+
+
+Summary
+=====================================
+
+### Spending Habits
+
+The name of my dashboard is Spending Habits, inspired by my own spending habit. I decided to analyze my own sepnding habits to see how my spending trends are and where I could reduce my expenditure. This is because I lately realized that maybe I am speding more than necessary and could save some money to secure my future. 
+
+Data collection -
+
+The data is my own personal data. I collected this data over a period of past three months, namely, January, February and March 2020.The data includes information like spend category,For example: Rent, Entertainment etc. and my Card Type like Credit or Debit. 
+
+Tools -
+
+The tools I utilzied my dashboard is manily dashboard made using Flexdashboard package. The graphs made are with Plotty, a gauge representation and various libraries to support my representation. The beauty of using plotty is that it is interactive as well as reactive. You can click on a specific catergory from the legend to view only that specific value.
+
+Explanation of each visualization - 
+
+1. The above guage on the Expenditure tab represents in each of the three months, how much was my spend percentage. This was calculated taking the sum of all of expenses for a particular month and dividing it by the sum of all my income for a particular month and taking the product of the result with 100. The criteria I had set up for my gauge was, success = (0 to 50.99), warning = (51 to 79.99), danger = (80 to 100). I appear to be in the warning category for the months of January and February but I did well in March.
+
+2. The pie charts on the Expenditure tab repesents my expense for each of the three months including each spend category namely, Restaurant & Dining, Insurance, Rent, Groceries, Shopping, Entertainment, Gas, Home & Utilities, Travel and	Misc. This is letting me know how much I spent in each of the category for a period of past 3 months. This also lets me analyze which spend category is the highest. For example here we can see that Rent is the maximum spend category for all the three months.
+
+3. The Credit Card Utilization tab represents the utilization of my credit card. My credit limit is $2000.This shows the percentage of my credit card utilization as compared to my total credit limit by each month. I chose to amalyze this to see where I am in each of the months with my credit utilization to check if I am going overboard with using my credit card. This representation tells us that my utilization of credit card was highest for the month of January.
+
+4. The Credit versus Debit tab is my favourite visualization. This represents how am I spending my money using both the credit and debit card by each month by different category showing a representation of how where I have used which card the most. This tab gives me all the information that I am looking for in one place.
+
+Looking at the above visualizations, there are a few Questions that I ask myself -
+
+1. Which month was my spending the highest?
+Ans : Looking at the guage, we can easily say that my speding was highest in the month of January
+
+2. Which month had the maximum credit card utilization? Which spend category was it towards and what is the maximum utilization percentage?
+Ans : Looking at my second tab, that represents credit card utilization, it is evident that in the month of February, my credit card utilization was the highest at 77.25%. The highest goes towards the rent.
+
+3. Which category am I spending most money in and is it necessary? Can it be decreased or avoided?
+Ans : Rent stands out as the highest area where all my paycheck goes, which is an unavoidable part of my expenses. But apart from Rent, it is evident that second highest is Travel. Travel again is an unavoidable as I need to travel to my university each semester. Third most is groceries, which I think I can try to cut down by a little by keeping an eye on what I am buying and asking to myself if I really need that item. I can try to curb my expenses for Restaurants & Dining as well when I am already spending so much on buying groceries.
+
+4. What happend in the month of March, why is the overall spend low in March?
+Ans : The overall spend being low in March is a really good indicator that I might be watching my expenses closely as I have become more consicous now as I am keeping a track of my expenses. But that is not the only thing. I think COVID -19 played a role here as well and because of that, I was not able to travel, which helped in curbing my expenses as well. Also noticed that Gas was less for the month of March as well as we have stay at home orders.
+
+5. What type of Credit Card Rewards would I benefit the most from?
+Ans : Looking at my visulization for credit card utilization, it looks like rent and travel are the two big expenses that I have from my credit card. It would be a good idea to set my category for rewards as travel, as I am eligible for a 3 % chasback on travel. Rent would come under ulility wchich would just be 2 % of cashback, but I guess for now it would be a good idea to set my rewards category as utility and get that 2 % cashback because I would not have to travel to my university for at least the next semester due to COVID -19.
